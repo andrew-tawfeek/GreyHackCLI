@@ -1,0 +1,48 @@
+<!-- Conventional SDK-style build for the BepInEx plugin.
+     Requires a .NET SDK (`dotnet build`). With no SDK, use build.ps1 (csc) instead —
+     it is the zero-install fallback and produces an equivalent DLL.
+     GamePath can be overridden: dotnet build -p:GamePath="D:\...\Grey Hack" -->
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <AssemblyName>GreyHackCLI</AssemblyName>
+    <RootNamespace>GreyHackCLI</RootNamespace>
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <GamePath Condition="'$(GamePath)' == ''">C:\Program Files (x86)\Steam\steamapps\common\Grey Hack</GamePath>
+    <ManagedPath>$(GamePath)\Grey Hack_Data\Managed</ManagedPath>
+    <BepCorePath>$(GamePath)\BepInEx\core</BepCorePath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="BepInEx">
+      <HintPath>$(BepCorePath)\BepInEx.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="0Harmony">
+      <HintPath>$(BepCorePath)\0Harmony.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Assembly-CSharp">
+      <HintPath>$(ManagedPath)\Assembly-CSharp.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine">
+      <HintPath>$(ManagedPath)\UnityEngine.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.CoreModule">
+      <HintPath>$(ManagedPath)\UnityEngine.CoreModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
+  <!-- Drop the built DLL straight into the game's plugins folder. -->
+  <Target Name="DeployToPlugins" AfterTargets="Build">
+    <MakeDir Directories="$(GamePath)\BepInEx\plugins\GreyHackCLI" />
+    <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(GamePath)\BepInEx\plugins\GreyHackCLI" />
+  </Target>
+
+</Project>

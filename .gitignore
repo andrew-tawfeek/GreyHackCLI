@@ -1,0 +1,27 @@
+# --- Reverse-engineering artifacts (do NOT commit game IP) ---
+tools/decompiled/
+tools/_dl/
+*.dll
+*.nupkg
+*.zip
+!bridge/**/*.dll        # (allow vendored refs if we ever choose to, by exception)
+
+# --- C# / BepInEx plugin build output ---
+bridge/**/bin/
+bridge/**/obj/
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+
+# --- Editor / OS ---
+.vs/
+.idea/
+.vscode/
+*.user
+Thumbs.db
+desktop.ini
