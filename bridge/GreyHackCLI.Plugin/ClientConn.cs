@@ -54,8 +54,8 @@ namespace GreyHackCLI
         {
             if (!GameRefs.Ready)
             {
-                SendRaw("[bridge] Not ready yet. Open an in-game terminal once (so the bridge can " +
-                        "learn your user), then reconnect.\r\n");
+                SendOutput("[bridge] Not ready yet. Open an in-game terminal once (so the bridge can " +
+                           "learn your user), then reconnect.\n");
                 Close();
                 return;
             }
@@ -69,14 +69,14 @@ namespace GreyHackCLI
                 _pid = pid;
                 Bridge.Register(pid, this);
                 Log("session opened: PID=" + pid + " user=" + _user + " cwd=" + _cwd);
-                SendRaw("Connected to " + _host + " as " + _user + ".\r\n");
+                SendOutput("Connected to " + _host + " as " + _user + ".\n");
                 _state = SState.Idle;
                 SendPrompt();
             }
             catch (Exception e)
             {
                 Log("OpenSession failed: " + e);
-                SendRaw("[bridge] failed to open session: " + e.Message + "\r\n");
+                SendOutput("[bridge] failed to open session: " + e.Message + "\n");
                 Close();
             }
         }
@@ -107,8 +107,8 @@ namespace GreyHackCLI
             if (line.Length == 0) { SendPrompt(); return; }
 
             string cmd0 = FirstToken(line);
-            if (cmd0 == "exit" || cmd0 == "logout") { SendRaw("logout\r\n"); Close(); return; }
-            if (cmd0 == "clear") { SendRaw("\x1b[2J\x1b[H"); SendPrompt(); return; }
+            if (cmd0 == "exit" || cmd0 == "logout") { SendOutput("logout\n"); Close(); return; }
+            if (cmd0 == "clear") { SendOutput("\x1b[2J\x1b[H"); SendPrompt(); return; }
 
             try
             {
@@ -168,7 +168,7 @@ namespace GreyHackCLI
 
         private void Fail(string msg)
         {
-            SendRaw(msg + "\r\n");
+            SendOutput(msg + "\n");
             _state = SState.Idle;
             SendPrompt();
         }
@@ -185,7 +185,16 @@ namespace GreyHackCLI
         public void OnReadyForInput(string askMessage, bool isPassword)
         {
             _state = SState.AwaitingInput;
-            if (!string.IsNullOrEmpty(askMessage)) SendRaw(askMessage);
+            SendFrame(isPassword ? 'W' : 'A', askMessage == null ? "" : askMessage);
+        }
+
+        // Ctrl-C from the client (ETX byte): cancel the running command / input.
+        public void CancelCurrent()
+        {
+            if (_pid < 0) return;
+            if (_state != SState.Running && _state != SState.AwaitingInput) return;
+            try { GameRefs.Player.greyScriptHelper.CancelScriptServerRpc(_pid); }
+            catch (Exception e) { Log("cancel failed: " + e); }
         }
 
         private void CloseSession()
@@ -216,20 +225,26 @@ namespace GreyHackCLI
         }
 
         // ---------------- socket I/O ----------------
+        // Framed protocol to the client: "<TYPE> <LEN>\n<payload-bytes>".
+        // TYPE: O=output, P=prompt, A=input request, W=password request.
 
-        private void SendPrompt() { SendRaw(BuildPrompt()); }
+        private void SendPrompt() { SendFrame('P', BuildPrompt()); }
+
+        public void SendOutput(string text) { SendFrame('O', text); }
 
         private string BuildPrompt()
         {
             string sep = (_user == "root") ? "# " : "$ ";
             if (string.IsNullOrEmpty(_user) && string.IsNullOrEmpty(_cwd)) return "$ ";
-            return "\r\n" + _user + "@" + _host + ":" + _cwd + sep;
+            return _user + "@" + _host + ":" + _cwd + sep;
         }
 
-        public void SendRaw(string text)
+        private void SendFrame(char type, string payload)
         {
-            if (string.IsNullOrEmpty(text) || _closed) return;
-            try { _outbound.Add(text); } catch { }
+            if (_closed) return;
+            if (payload == null) payload = "";
+            int len = Encoding.UTF8.GetByteCount(payload);
+            try { _outbound.Add(type + " " + len + "\n" + payload); } catch { }
         }
 
         private void ReadLoop()
@@ -244,7 +259,13 @@ namespace GreyHackCLI
                     if (n <= 0) break;
                     for (int i = 0; i < n; i++)
                     {
-                        char ch = (char)buf[i];
+                        byte b = buf[i];
+                        if (b == 3) // ETX = client Ctrl-C: cancel the running command
+                        {
+                            GameRefs.OnMainThread(CancelCurrent);
+                            continue;
+                        }
+                        char ch = (char)b;
                         if (ch == '\n')
                         {
                             string s = line.ToString().TrimEnd('\r');

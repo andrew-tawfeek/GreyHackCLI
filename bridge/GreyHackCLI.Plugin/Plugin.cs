@@ -12,7 +12,7 @@ namespace GreyHackCLI
     {
         public const string Guid = "dev.coffeeandproofs.greyhackcli";
         public const string Name = "GreyHackCLI Bridge";
-        public const string Version = "0.5.1";
+        public const string Version = "0.6.0";
 
         internal static ManualLogSource Log;
         private Harmony _harmony;

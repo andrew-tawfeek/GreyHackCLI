@@ -78,7 +78,7 @@ namespace GreyHackCLI
         public static void RouteRawText(int windowPID, string text)
         {
             ClientConn conn;
-            if (_byPid.TryGetValue(windowPID, out conn)) conn.SendRaw(text);
+            if (_byPid.TryGetValue(windowPID, out conn)) conn.SendOutput(text);
         }
 
         // Prompt info (user/host/cwd) for a headless PID. Returns true if it's ours (skip client send).
