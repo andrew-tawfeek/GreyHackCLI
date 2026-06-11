@@ -126,6 +126,12 @@ Working end-to-end:
   client with history, line editing, and auto-suggest; `Ctrl-C` cancels a running command;
   interactive program input/password prompts (`A`/`W`)
 
+> **TODO — next pickup:** verify v0.6.0 in-game. Close Grey Hack → `pwsh
+> bridge/GreyHackCLI.Plugin/build.ps1` (deploys v0.6.0) → relaunch → `python cli/ghcli.py`, then
+> confirm: history (↑) + line editing, `Ctrl-C` cancels a *running* command (and just clears the
+> line at an idle prompt), and an interactive program's input/password prompt round-trips. The
+> currently-deployed plugin may still be v0.5.1 until this redeploy. This is milestone **M5** below.
+
 ## Testing stages
 
 - [x] **M1** — toolchain + reverse-engineering of the session/message protocol
